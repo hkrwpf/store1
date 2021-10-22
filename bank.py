@@ -1,192 +1,318 @@
+# author:jason
 import random
-from DBUtils import update
-from DBUtils import select
 
-bank_name = "中国工商银行昌平回龙观支行"
-def welcome():
-    print("**********************************")
-    print("*       中国工商银行昌平支行         *")
-    print("**********************************")
-    print("* 1.开户                         *")
-    print("* 2.存钱                         *")
-    print("* 3.取钱                         *")
-    print("* 4.转账                         *")
-    print("* 5.查询                         *")
-    print("* 6.bye                         *")
+# 银行库
+bank = {
+    "wpf":{
+        "account": 6225600169,
+        "password": 123456,
+        "country": "cn",
+        "province": "河北省",
+        "street": "中山路",
+        "door": "s005",
+        "money": 6000},
+    "syf":{
+        "account": 6209848313,
+        "password": 123456,
+        "country": "cn",
+        "province": "河北省",
+        "street": "中山路",
+        "door": "s004",
+        "money": 6000
+        }
+}
+bank_name = "中国工商银行昌平支行"
+bank_choice = {"1": "开户", "2": "存钱", "3": "取钱", "4": "转账", "5": "查询", "6": "Bye"}  # 银行业务选项
+# 开户成功的信息模板
+myinfo = '''
+    \033[0;32;40m
+    ------------账户信息------------
+    账号：{account}
+    姓名：{username}
+    密码：{password}
+    地址：
+        国家：{country}
+        省份：{province}
+        街道：{street}
+        门牌号：{door}
+    账户余额：{money}
+    注册银行名：{bank_name}
+    -------------------------------
+    \033[0m
+'''
+
+# 欢迎模板
+welcome = '''
+***********************************
+*      中国工商银行账户管理系统       *
+***********************************
+*               选项              *
+'''
+
+welcome_item = '''*              {0}.{1}             *'''
+
+
+def print_welcome():
+    print(welcome, end="")
+    keys = bank_choice.keys()
+    for i in keys:
+        print(welcome_item.format(i, bank_choice[i]))
     print("**********************************")
 
 
+# 输入帮助方法：chose是打印选项
+def inputHelp(chose, datatype="str"):
+    while True:
+        print("请输入", chose, ":")
+        i = input(">>>:")
+        if len(i) == 0:
+            print("该项不能为空！请重新输入！")
+            continue
+        if datatype != "str":
+            return int(i)
+        else:
+            return i
+
+
+# 判断是否存在该银行选项
+def isExists(chose, data):
+    if chose in data:
+        return True
+    return False
+
+
+# 获取随机码
 def getRandom():
-    li = "0123456789qwertyuiopasdfghjklzxcvbnmZXCVBNMASDFGHJKLQWERTYUIOP"
+    li = "0123456789"
     global string
-    string = ""
-    for i in range(8):
-        string = string + li[int(random.random() * len(li))]
+    string = "6"
+    for i in range(15):
+        string = string + li[int(random.randint(0, 9))]
     return string
-def bank_adduser(username, password, country, province, street, door, money):
-    sql1 = "select count(*) from user"
-    param1 = []
-    data1 = select(sql1, param1)
-    if data1[0][0] > 100:
+
+
+# 通过账号获取账户信息
+def findByAccount(account):
+    for i in bank.keys():
+        if bank[i]["account"] == account:
+            return i
+    return None
+
+
+# 银行的开户方法
+def bank_addUser(username, password, country, province, street, door, money):
+    # 查询是否已满
+    if len(bank) >= 100:
         return 3
 
-    sql2 = "select * from user where username = %s"
-    param2 = [username]
-    data2 = select(sql2, param2)
-    if len(data2) != 0:
+    # 查询是否存在
+    if username in bank:
         return 2
 
-    sql3 = "insert into user values(%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)"
-    param3 = [getRandom(), username, password, country, province, street, door, money, bank_name]
-    update(sql3, param3)
+        # 插入数据
+
+    bank[username] ={
+        "account": getRandom(),
+        "password": password,
+        "country": country,
+        "province": province,
+        "street": street,
+        "door": door,
+        "money": money,
+        "bank_name": bank_name
+    }
     return 1
-def addUser():
-    username = input("用户名")
-    password = int(input("密码"))
-    country = input("居住地址：1.国家：")
-    province = input("省份")
-    street = input("街道")
-    door = input("门牌号")
-    money = int(input("银行卡余额"))
 
-    statue = bank_adduser(username, password, country, province, street, door, money)
-    if statue == 3:
-        print("银行库已满！请携带证件到其他银行办理！谢谢！！！！！")
-    elif statue == 2:
-        print("改用户已经存在！请携带证件到其他银行办理！谢谢！！！！！")
-    elif statue == 1:
-        print("开户成功，以下是您的开户信息")
-        info = '''
-                        ----------个人信息------
-                        用户名：%s
-                        密码：%s
-                        账号：%s
-                        地址信息
-                            国家：%s
-                            省份：%s
-                            街道：%s
-                            门牌号: %s
-                        余额：%s
-                        开户行地址：%s
-                        ------------------------
-                    '''
-        print(info % (username, password, string, country, province, street, door, money, bank_name))
 
-def savemoney():
-    account = input("请输入您的账号：")
-    m = int(input("请输入您要存的金额："))
-    sql1 = "select * from user where account = %s"
-    param1 = [account]
-    data1 = select(sql1, param1)
-    if data1[0][0] == account:
-        sql2 = "update user set money = money + %s where account = %s"
-        param2 = [m, account]
-        update(sql2, param2)
-        print("存款成功，以下是您的个人信息")
-        sql3 = "select account,username,money from user where account = %s"
-        param3 = [account]
-        data3 = select(sql3, param3)
-        print(data3)
+# 银行的存钱方法
+def bank_saveMoney(ac, money):
+    for i in bank.keys():
+        if bank[i]["account"] == ac:
+            print(bank[i]["money"])
+            bank[i]["money"] += money
+            return True
+    return False
+
+
+# 银行的查询功能
+def bank_selectUser(account, password):
+    uname = findByAccount(account)
+
+    if uname != None and len(uname) != 0:
+        if password == bank[uname]["password"]:
+            user = bank[uname]
+            print(myinfo.format(account=user["account"],
+                                username=uname,
+                                password=user["password"],
+                                country=user["country"],
+                                province=user["province"],
+                                street=user["street"],
+                                door=user["door"],
+                                money=user["money"],
+                                bank_name=user["bank_name"]
+                                ))
+        else:
+            print("用户密码错误！")
     else:
-        print("您的账号错误！")
+        print("该用户不存在！")
 
-def takemoney():
-    account = input("请输入您的账号：")
-    sql1 = "select * from user where account = %s"
-    param1 = [account]
-    data1 = select(sql1, param1)
-    if data1[0][0] == account:
-        password = int(input("请输入您的密码："))
-        if data1[0][2] == password:
-            q = int(input("请输入您要取的金额："))
-            if data1[0][7] >= q:
-                sql2 = "update user set money = money - %s where account = %s"
-                param2 = [q, account]
-                update(sql2, param2)
-                sql3 = "select account,username,money from user where account = %s"
-                param3 = [account]
-                data3 = select(sql3, param3)
-                print(data3)
+
+# 银行的取钱功能
+def bank_takeMoney(account, password, money):
+    uname = findByAccount(account)
+    if uname != None:
+        if bank[uname]["password"] == password:
+            if bank[uname]["money"] < money:
+                return 3
             else:
-                print("您账户金额不足！")
+                bank[uname]["money"] -= money
+                return 0
         else:
-            print("您输入的密码错误！")
+            return 2
     else:
-        print("您输入的账号不存在！")
+        return 1
 
 
-def givemoney():
-    account = input("请输入您的账号：")
-    sql1 = "select * from user where account = %s"
-    param1 = [account]
-    data1 = select(sql1, param1)
-    if data1[0][0] == account:
-        account2 = input("请输入要转账的账号：")
-        password = int(input("请输入您账号的密码："))
-        if data1[0][2] == password:
-            sql2 = "select * from user where account = %s"
-            param2 = [account2]
-            data2 = select(sql2, param2)
-            if data2[0][0] == account2:
-                z = int(input("请输入您要转账的金额："))
-                if data1[0][7] >= z:
-                    sql3 = "update user set money = money - %s where account = %s and password = %s"
-                    param3 = [z, account, password]
-                    update(sql3, param3)
-                    sql4 = "update user set money = money + %s where account = %s"
-                    param4 = [z, account2]
-                    update(sql4, param4)
-                    print("转账成功！以下是您的个人信息：")
-                    sql5 = "select account,username,money from user where account = %s"
-                    param5 = [account]
-                    data5 = select(sql5, param5)
-                    print(data5)
-                else:
-                    print("您账户的金额不足！")
-            else:
-                print("您要转账的账户不存在！")
-        else:
-            print("您输入的密码错误！")
+# 银行的转账功能
+def bank_transformMoney(outputaccount, inputaccount, outputpassword, outputmoney):
+    status = bank_takeMoney(outputaccount, outputpassword, outputmoney)
+    if status == 1:
+        return status
+    elif status == 2:
+        return status
+    elif status == 3:
+        return status
+
+    if inputaccount != None and findByAccount(inputaccount) != None:
+        bank_saveMoney(inputaccount, outputmoney)
+        return 0
     else:
-        print("您输入的账号不存在！")
+        return 1
 
-
-def selectUser():
-    account = input("请输入您要查询的账号：")
-    sql = "select * from user where account = %s "
-    param = [account]
-    data = select(sql, param)
-    if data[0][0] == account:
-        password = int(input("请输入要查询账号的密码："))
-        if data[0][2] == password:
-            sql1 = "select account, username, money from user where account = %s "
-            param1 = [account]
-            data1 = select(sql1, param1)
-            print(data1)
-        else:
-            print("您输入的密码错误！")
-    else:
-        print("您输入的账号不存在！")
-
-
-
-while True:
-    welcome()
-    chose = input("请选择您要办理的业务号：")
-    if chose == "1":
-        addUser()
-    elif chose == "2":
-        savemoney()
-    elif chose == "3":
-        takemoney()
-    elif chose == "4":
-        givemoney()
-    elif chose == "5":
-        selectUser()
-    elif chose == "6":
-        print("欢迎下次光临！")
-        break
-    else:
-        print("输入错误！请重新输入！")
-
-
+#
+# # 开户方法
+# def addUser():
+#     username = inputHelp("用户名")
+#     password = inputHelp("密码")
+#     country = inputHelp("居住地址：1.国家：")
+#     province = inputHelp("省份")
+#     street = inputHelp("街道")
+#     door = inputHelp("门牌号")
+#     money = inputHelp("银行卡余额", "int")
+#
+#     # 调用银行的开户方法完成开户操作  返回 1 2 3
+#     status = bank_addUser(username, password, country, province, street, door, money)
+#     # 判断1   2   3
+#     if status == 1:
+#         user = bank[username]
+#         print("恭喜开户成功！以下是您的开户信息：")
+#         print(myinfo.format(account=user["account"],
+#                             username=username,
+#                             password=user["password"],
+#                             country=user["country"],
+#                             province=user["province"],
+#                             street=user["street"],
+#                             door=user["door"],
+#                             money=user["money"],
+#                             bank_name=user["bank_name"]
+#                             ))
+#     elif status == 2:
+#         print("改用户已经存在！请携带证件到其他银行办理！谢谢！！！！！")
+#     elif status == 3:
+#         print("银行库已满！请携带证件到其他银行办理！谢谢！！！！！")
+#
+#
+# # 存钱
+# def saveMoney():
+#     account = inputHelp("账号")
+#     m = inputHelp("存入的金额", "int")
+#
+#     flag = bank_saveMoney(account, m)
+#
+#     if flag:
+#         print("存储成功!您的个人信息为：")
+#         uname = findByAccount(account)
+#         user = bank[uname]
+#         print(myinfo.format(account=user["account"],
+#                             username=uname,
+#                             password=user["password"],
+#                             country=user["country"],
+#                             province=user["province"],
+#                             street=user["street"],
+#                             door=user["door"],
+#                             money=user["money"],
+#                             bank_name=user["bank_name"]
+#                             ))
+#     else:
+#         print("对不起，您的个人信息不存在！请先开户后再次操作！")
+#
+#
+# # 取钱
+# def takeMoney():
+#     account = inputHelp("账户")
+#     password = inputHelp("密码")
+#     tmoney = inputHelp("取出金额", "int")
+#
+#     f = bank_takeMoney(account, password, tmoney)
+#
+#     if f == 1:
+#         print("改用户不存在！")
+#     elif f == 2:
+#         print("密码错误！")
+#     elif f == 3:
+#         print("取款金额不足！")
+#     elif f == 0:
+#         print("取款成功！")
+#         bank_selectUser(account, password)
+#
+#
+# # 转账功能
+# def transformMoney():
+#     output = inputHelp("转出的账号")
+#     input = inputHelp("转入的账号")
+#     outputpass = inputHelp("转出的密码")
+#     outputmoney = inputHelp("要转出的金额", "int")
+#
+#     f = bank_transformMoney(output, input, outputpass, outputmoney)
+#
+#     if f == 1:
+#         print("转出或转入的账号不存在！")
+#     elif f == 2:
+#         print("输入密码错误！")
+#     elif f == 3:
+#         print("转账金额不足！")
+#     else:
+#         print("转账成功！")
+#         print("您的个人信息：")
+#         bank_selectUser(output, outputpass)
+#
+#
+# # 查询账户方法
+# def selectUser():
+#     account = inputHelp("账号")
+#     password = inputHelp("密码")
+#
+#     bank_selectUser(account, password)
+#
+#
+# # 核心程序
+# while True:
+#
+#     print_welcome()
+#     chose = inputHelp("选项")
+#     if isExists(chose, bank_choice):
+#         if chose == "1":
+#             addUser()
+#         elif chose == "2":
+#             saveMoney()
+#         elif chose == "3":
+#             takeMoney()
+#         elif chose == "4":
+#             transformMoney()
+#         elif chose == "5":
+#             selectUser()
+#         elif chose == "6":
+#             print("Bye,Bye您嘞！！！！")
+#             break
+#     else:
+#         print("不存在改选项，别瞎弄！")
